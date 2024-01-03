@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 import math
+import time
 # Bicycle model differential equations
 def bicycle_model(state, t, delta):
     """
@@ -35,10 +36,14 @@ solution = odeint(bicycle_model, initial_state, simulation_time, args=(steering_
 from pylimo import limo
 limo=limo.LIMO()
 limo.EnableCommand()
-for v in solution[:,3]:
+vel_limo = np.zeros(50)
+steering_angle_limo = np.zeros(50)
+wheel_odom = np.zeros(50)
+for i,v in enumerate(solution[:,3]):
     limo.SetMotionCommand(linear_vel=v, steering_angle=steering_angle)
-    limo.GetLinearVelocity()
-    limo.GetSteeringAngle()
+    vel_limo[i] = limo.GetLinearVelocity()
+    steering_angle_limo[i] = limo.GetSteeringAngle()
+    wheel_odom[i] = GetRightWheelOdem()
     ##TODO get position from optitrack 
     time.sleep(0.1)  ## determined by spacing in simulation time.
 
@@ -49,6 +54,7 @@ plt.figure(figsize=(12, 6))
 # Plot 2D position
 plt.subplot(2, 2, 1)
 plt.plot(solution[:, 0], solution[:, 1])
+plt.plot(wheel_odom)
 plt.title('2D Position')
 plt.xlabel('X Position (m)')
 plt.ylabel('Y Position (m)')
@@ -62,6 +68,8 @@ plt.ylabel('Theta (rad)')
 
 plt.subplot(2, 2, 3)
 plt.plot(simulation_time, solution[:, 3])
+plt.plot(simulation_time, vel_limo)
+plt.legend(['Simulation', 'Limo'])
 plt.title('Velocity')
 plt.xlabel('Time (s)')
 plt.ylabel('Velocity (m/s)')
