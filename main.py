@@ -16,7 +16,7 @@ def bicycle_model(state, t, delta):
     dxdt = v * np.cos(theta)
     dydt = v * np.sin(theta)
     dthetadt = v / L * np.tan(delta)
-    dvdt = 0.2  # Assuming constant velocity for simplicity
+    dvdt = 0.2 if t<=5 else -0.2  # Assuming constant velocity for simplicity
     return [dxdt, dydt, dthetadt, dvdt]
 
 # Simulation parameters
@@ -27,7 +27,7 @@ min_turning_radius = 0.4 #  minimum turning radius 0.4 [m]
 max_steering_angle = math.atan(L/0.4) # max steering angle [rad]
 if steering_angle >=max_steering_angle:
     raise Exception("Steering angle is higher than max steering angle")
-simulation_time = np.linspace(0, 5, 50)  # Time vector
+simulation_time = np.linspace(0, 10, 100)  # Time vector
 
 # Solve the differential equations
 solution = odeint(bicycle_model, initial_state, simulation_time, args=(steering_angle,))
@@ -36,14 +36,14 @@ solution = odeint(bicycle_model, initial_state, simulation_time, args=(steering_
 from pylimo import limo
 limo=limo.LIMO()
 limo.EnableCommand()
-vel_limo = np.zeros(50)
-steering_angle_limo = np.zeros(50)
-wheel_odom = np.zeros(50)
+vel_limo = np.zeros(100)
+steering_angle_limo = np.zeros(100)
+wheel_odom = np.zeros(100)
 for i,v in enumerate(solution[:,3]):
     limo.SetMotionCommand(linear_vel=v, steering_angle=steering_angle)
     vel_limo[i] = limo.GetLinearVelocity()
     steering_angle_limo[i] = limo.GetSteeringAngle()
-    wheel_odom[i] = GetRightWheelOdem()
+    wheel_odom[i] = limo.GetRightWheelOdom()
     ##TODO get position from optitrack 
     time.sleep(0.1)  ## determined by spacing in simulation time.
 
@@ -54,7 +54,6 @@ plt.figure(figsize=(12, 6))
 # Plot 2D position
 plt.subplot(2, 2, 1)
 plt.plot(solution[:, 0], solution[:, 1])
-plt.plot(wheel_odom)
 plt.title('2D Position')
 plt.xlabel('X Position (m)')
 plt.ylabel('Y Position (m)')
@@ -74,6 +73,8 @@ plt.title('Velocity')
 plt.xlabel('Time (s)')
 plt.ylabel('Velocity (m/s)')
 
+vel_error =  np.linalg.norm(vel_limo-solution[:,3])
+print(vel_error)
+print(wheel_odom)
 plt.tight_layout()
 plt.show()
-
